@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-read --allow-write --watch main.ts",
+    "run": "deno run --allow-read --allow-write main.ts",
+    "test": "cd tests && pnpm run dev"
+  },
+  "imports": {
+    "webc": "npm:@11ty/webc"
+  }
+}

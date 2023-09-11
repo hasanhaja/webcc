@@ -1,0 +1,4 @@
+<section>
+  <my-heading></my-heading>
+  <p>This is my HTML component</p>
+</section>
