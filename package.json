@@ -1,0 +1,17 @@
+{
+  "name": "webc-to-react-compiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "compile": "node main.js",
+    "test": "cd tests && pnpm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@11ty/webc": "^0.11.4"
+  }
+}

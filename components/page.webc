@@ -10,6 +10,7 @@
 	</head>
 	<body>
 		WebC *is* HTML.
+    <p @text="this.greeting"></p>
   </body>
 </html>
 
