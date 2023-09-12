@@ -3,7 +3,7 @@
 
     
 
-    type ComponentWithPropsProps = {greeting: string};
+    type ComponentWithPropsProps = {greeting: string;};
 
     export const ComponentWithProps = ({ greeting }) => (
       <>

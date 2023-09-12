@@ -8,7 +8,7 @@ const sanitizeMarkup = (snippet) => {
 };
 
 const formatProps = (props) => {
-  const types = Object.entries(props).map(([ prop, propType ]) => `${prop}: ${propType}`).join(", ");
+  const types = Object.entries(props).map(([ prop, propType ]) => `${prop}: ${propType};`).join(" ");
   const params = Object.keys(props).map((prop) => `${prop}`).join(", ");
 
   return {
