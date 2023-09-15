@@ -1,3 +1,4 @@
 <div>
   <p @text="greeting"></p>
+  <p @text="message"></p>
 </div>

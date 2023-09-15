@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "compile": "node main.js",
-    "test": "cd tests && pnpm run dev"
+    "test:components": "cd tests/webc-component-tests && pnpm run start",
+    "test:react": "cd tests/compiled-react-tests && pnpm run dev"
   },
   "keywords": [],
   "author": "",

@@ -1,3 +1,4 @@
 {
-  "greeting": "string"
+  "greeting": "string",
+  "message": "string"
 }

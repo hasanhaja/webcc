@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <meta name="generator" :content="eleventy.generator">
+    <style @raw="getBundle('css')" webc:keep></style>
+		<script @raw="getBundle('js')" webc:keep></script>
+  </head>
+  <body>
+    <main @html="this.content"></main>
+  </body>
+</html>

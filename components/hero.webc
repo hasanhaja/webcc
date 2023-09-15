@@ -8,7 +8,7 @@
 </section>
 
 <style webc:scoped>
-  :host {
+  :host > section {
     background-color: #fdba74;
     border-radius: 2rem;
   }
