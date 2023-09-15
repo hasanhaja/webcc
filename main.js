@@ -1,9 +1,14 @@
 import { WebC } from "@11ty/webc";
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
-const sanitizeMarkup = (snippet) => {
+const sanitizeMarkup = ({ snippet, isCustomElement, tag }) => {
   let result = snippet;
   result = result.replaceAll("class=", "className=");
+
+  if (isCustomElement) {
+    result = result.replaceAll(`<${tag}>`, `<${tag} ref={wc}>`) 
+  }
+
   return result;
 };
 
@@ -21,32 +26,38 @@ const formatProps = (props) => {
   };
 };
 
-const toReactComponent = ({ snippet, styles, name, props }) => {
+const toReactComponent = ({ snippet, styles, name, props, js, tag }) => {
   const { types, params } = formatProps(props) ?? {};
 
   const boilerplate = `
     // This component was auto-generated from a WebC template
     ${ styles ? `import "./index.css";` : "" }
+    ${ js ? `import "./web-component.js";\nimport { useRef } from 'react';` : "" }
     ${ types ? `type ${name}Props = ${types};` : "" }
-    export const ${name} = (${params ?? ""}) => (
-      <>
-        ${sanitizeMarkup(snippet)}
-      </>
-    );
+    export const ${name} = (${params ?? ""}) => {
+      const wc = useRef(null);
+      return (
+        <>
+          ${sanitizeMarkup({ snippet, isCustomElement: js !== undefined, tag})}
+        </>
+      );
+    }
 
     export default ${name};
   `;
-  
+    
   return {
     component: boilerplate,
     styles,
     name,
+    js,
   };
 };
 
-const toReactComponentFile = async ({ component, name, styles, outputDir}) => {
+const toReactComponentFile = async ({ component, name, styles, js, outputDir}) => {
   const componentFileName = "index.tsx";
   const stylesFileName = "index.css";
+  const jsFileName = "web-component.js";
   const componentDir = `./${outputDir}/components/${name}`;
   
   const componentDirUrl = new URL(componentDir, import.meta.url);
@@ -56,6 +67,16 @@ const toReactComponentFile = async ({ component, name, styles, outputDir}) => {
 
   if (styles) {
     await writeFile(`${componentDir}/${stylesFileName}`, styles);
+  }
+
+  if (js) {
+    const boilerplate = `
+      if(typeof window !== "undefined" && ("customElements" in window)) {
+        ${js}
+      }
+    `;
+
+    await writeFile(`${componentDir}/${jsFileName}`, boilerplate);
   }
 };
 
@@ -71,7 +92,10 @@ const getComponentName = (path) => {
     const name = componentName.split("-")
       .map(capitalize)
       .join("");
-    return name;
+    return { 
+      name, 
+      tag: componentName,
+    };
   }
 
   return undefined;
@@ -98,26 +122,40 @@ const compile = async (path, schema) => {
     data = Object.fromEntries(Object.keys(props).map((key) => [`${key}`, `{${key}}`]));
   }
   
-  let { html, css, js, components } = await page.compile(data ? { data } : undefined);
+  let { html, css, js: rawJs, components } = await page.compile(data ? { data } : undefined);
+
+  const { name, tag } = getComponentName(path);
+  let snippet = html;
+  const js = rawJs[0];
+
+  if (js.includes("customElements.define")) {
+    snippet = `
+      <${tag}>
+        ${html}
+      </${tag}>
+    `;
+  }
 
   // console.log("----HTML----");
-  // console.log(html);
+  // console.log(snippet);
   // console.log("------------");
 
-  // console.log("-----CSS----");
-  // console.log(path);
+  // console.log("-----JS-----");
+  // console.log(js);
   // console.log("------------");
 
   return {
-    snippet: html,
+    snippet,
     styles: css[0],
-    name: getComponentName(path) ?? "Component",
+    name: name ?? "Component",
     props,
+    js,
+    tag,
   }
 };
 
 // const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
-const result = await compile("./components/hero.webc");
+const result = await compile("./components/my-greeting.webc");
 
 await toReactComponentFile({...toReactComponent(result), outputDir: "output", });
 

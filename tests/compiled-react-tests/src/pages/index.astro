@@ -1,6 +1,7 @@
 ---
 import ComponentWithProps from "../components/ComponentWithProps/index.tsx";
 import Greet from "../react-web-components/Greet.tsx";
+import MyGreeting from "../components/MyGreeting/index.tsx";
 ---
 
 <html lang="en">
@@ -9,12 +10,12 @@ import Greet from "../react-web-components/Greet.tsx";
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-    <script src="../react-web-components/x-greet.js"></script>
 		<title>Astro</title>
 	</head>
 	<body>
 		<h1>WebC as React</h1>
     <ComponentWithProps greeting="Hello from Astro 🚀" message="This is my message" client:only="react" />
-    <Greet />
+    <Greet client:load />
+    <MyGreeting client:load />
 	</body>
 </html>

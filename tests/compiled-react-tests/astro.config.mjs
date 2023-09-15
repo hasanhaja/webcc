@@ -8,7 +8,7 @@ export default defineConfig({
   vite: {
     server: {
       fs: {
-        allow: ["../../output/components/"],
+        allow: ["../../output/components/", "."],
       },
     },
   },
