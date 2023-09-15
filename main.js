@@ -8,6 +8,10 @@ const sanitizeMarkup = (snippet) => {
 };
 
 const formatProps = (props) => {
+  if (typeof props === "undefined") {
+    return undefined;
+  }
+
   const types = Object.entries(props).map(([ prop, propType ]) => `${prop}: ${propType};`).join(" ");
   const params = Object.keys(props).map((prop) => `${prop}`).join(", ");
 
@@ -18,15 +22,13 @@ const formatProps = (props) => {
 };
 
 const toReactComponent = ({ snippet, styles, name, props }) => {
-  const { types, params } = formatProps(props);
+  const { types, params } = formatProps(props) ?? {};
+
   const boilerplate = `
     // This component was auto-generated from a WebC template
-
-    ${ styles ? `import "./index.css";` : ""}
-
-    type ${name}Props = ${types};
-
-    export const ${name} = (${params}) => (
+    ${ styles ? `import "./index.css";` : "" }
+    ${ types ? `type ${name}Props = ${types};` : "" }
+    export const ${name} = (${params ?? ""}) => (
       <>
         ${sanitizeMarkup(snippet)}
       </>
@@ -53,7 +55,7 @@ const toReactComponentFile = async ({ component, name, styles, outputDir}) => {
   await writeFile(`${componentDir}/${componentFileName}`, component);
 
   if (styles) {
-    await writeFile(`${componentDir}/${stylesFileName}`, stylesData);
+    await writeFile(`${componentDir}/${stylesFileName}`, styles);
   }
 };
 
@@ -84,17 +86,19 @@ const compile = async (path, schema) => {
   page.defineComponents("./components/**.webc");
 
   const filePath = new URL(path, import.meta.url);
-  const schemaPath = new URL(schema, import.meta.url);
   const contents = await readFile(filePath, { encoding: "utf8" });
   page.setContent(contents);
 
-  const propsContents = await readFile(schemaPath, { encoding: "utf8" });
-  const props = JSON.parse(propsContents);
-  const data = Object.fromEntries(Object.keys(props).map((key) => [`${key}`, `{${key}}`]));
+  let data, props;
 
-  let { html, css, js, components } = await page.compile({
-    data,
-  });
+  if (schema) {
+    const schemaPath = new URL(schema, import.meta.url);
+    const propsContents = await readFile(schemaPath, { encoding: "utf8" });
+    props = JSON.parse(propsContents);
+    data = Object.fromEntries(Object.keys(props).map((key) => [`${key}`, `{${key}}`]));
+  }
+  
+  let { html, css, js, components } = await page.compile(data ? { data } : undefined);
 
   // console.log("----HTML----");
   // console.log(html);
@@ -112,7 +116,8 @@ const compile = async (path, schema) => {
   }
 };
 
-const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
+// const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
+const result = await compile("./components/hero.webc");
 
 await toReactComponentFile({...toReactComponent(result), outputDir: "output", });
 
