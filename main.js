@@ -1,17 +1,28 @@
 import { WebC } from "@11ty/webc";
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
+/**
+ *  Cleans up the markup to be more React JSX friendly.
+ *  @param {{ snippet: string; isCustomElement: boolean; tag: string;}} Markup with metadata
+ *  @returns {string} Reformatted markup.
+ */
 const sanitizeMarkup = ({ snippet, isCustomElement, tag }) => {
   let result = snippet;
   result = result.replaceAll("class=", "className=");
 
   if (isCustomElement) {
+    // TOOD Come up with a better way to handle this so web component props are not missed
     result = result.replaceAll(`<${tag}>`, `<${tag} ref={wc}>`) 
   }
 
   return result;
 };
 
+/**
+ *  Extracts the name of the target component from the source WebC component
+ *  @param {object} props - Props of the component
+ *  @returns {{types: string; params: string;} | undefined} Props formatted into types and component props.
+ */
 const formatProps = (props) => {
   if (typeof props === "undefined") {
     return undefined;
@@ -26,6 +37,11 @@ const formatProps = (props) => {
   };
 };
 
+/**
+ *  Converts parts of the component including markup, styles and web component JS into a React component.
+ *  @param {{ snippet: string; styles: string; name: string; props: string; js: string; tag: string;}} parts - Parts of a component.
+ *  @returns {{ component: string; styles: string; name: string; js: string;}} partsToWrite - Parts to be written to disk.
+ */
 const toReactComponent = ({ snippet, styles, name, props, js, tag }) => {
   const { types, params } = formatProps(props) ?? {};
 
@@ -35,7 +51,7 @@ const toReactComponent = ({ snippet, styles, name, props, js, tag }) => {
     ${ js ? `import "./web-component.js";\nimport { useRef } from 'react';` : "" }
     ${ types ? `type ${name}Props = ${types};` : "" }
     export const ${name} = (${params ?? ""}) => {
-      const wc = useRef(null);
+      ${ js ? "const wc = useRef(null);" : "" }
       return (
         <>
           ${sanitizeMarkup({ snippet, isCustomElement: js !== undefined, tag})}
@@ -54,6 +70,10 @@ const toReactComponent = ({ snippet, styles, name, props, js, tag }) => {
   };
 };
 
+/**
+ *  Writes parts of the component to disk.
+ *  @param {{ component: string; name: string; styles: string; js: string; outputDir: string;}} parts - Parts required to write component to disk.
+ */
 const toReactComponentFile = async ({ component, name, styles, js, outputDir}) => {
   const componentFileName = "index.tsx";
   const stylesFileName = "index.css";
@@ -80,8 +100,18 @@ const toReactComponentFile = async ({ component, name, styles, js, outputDir}) =
   }
 };
 
+/**
+ *  Capitalizes the first letter of a work
+ *  @param {string} word - Word to be capitalized.
+ *  @returns {string} capitalizedWord - Capitalized word.
+ */
 const capitalize = (word) => word[0].toUpperCase() + word.substr(1).toLowerCase();
 
+/**
+ *  Extracts the name of the target component from the source WebC component
+ *  @param {string} path - Path of the WebC component.
+ *  @returns {string | undefined} componentName - Name of the component if regex matches.
+ */
 const getComponentName = (path) => {
   const regex = /\/([^/]+)\.webc$/;
   const match = path.match(regex);
@@ -101,18 +131,25 @@ const getComponentName = (path) => {
   return undefined;
 };
 
+/**
+ *  Compiles the WebC component to constituent parts with some additional formatting.
+ *  @param {string} path - Path of the WebC component.
+ *  @param {string | undefined} schema - Path to the JSON file with the component props.
+ *  @returns {Promise<{ snippet: string; styles: string; name: string; props: string; js: string; tag: string;}>} parts - Parts of a component.
+ */
 const compile = async (path, schema) => {
-  let page = new WebC();
+  const component = new WebC();
 
   // This enables aggregation of CSS and JS
   // As of 0.4.0+ this is disabled by default
-  page.setBundlerMode(true);
-  page.defineComponents("./components/**.webc");
+  component.setBundlerMode(true);
+  component.defineComponents("./components/**.webc");
 
   const filePath = new URL(path, import.meta.url);
   const contents = await readFile(filePath, { encoding: "utf8" });
-  page.setContent(contents);
+  component.setContent(contents);
 
+  // TODO Add error handling for when missing props throws an error
   let data, props;
 
   if (schema) {
@@ -122,13 +159,13 @@ const compile = async (path, schema) => {
     data = Object.fromEntries(Object.keys(props).map((key) => [`${key}`, `{${key}}`]));
   }
   
-  let { html, css, js: rawJs, components } = await page.compile(data ? { data } : undefined);
+  let { html, css, js: rawJs, components } = await component.compile(data ? { data } : undefined);
 
   const { name, tag } = getComponentName(path);
-  let snippet = html;
-  const js = rawJs[0];
+  let snippet = html.trim();
+  const js = rawJs?.join("").trim();
 
-  if (js.includes("customElements.define")) {
+  if (js?.includes("customElements.define")) {
     snippet = `
       <${tag}>
         ${html}
@@ -136,17 +173,10 @@ const compile = async (path, schema) => {
     `;
   }
 
-  // console.log("----HTML----");
-  // console.log(snippet);
-  // console.log("------------");
-
-  // console.log("-----JS-----");
-  // console.log(js);
-  // console.log("------------");
-
+  
   return {
-    snippet,
-    styles: css[0],
+    snippet: snippet.trim(),
+    styles: css[0]?.trim(),
     name: name ?? "Component",
     props,
     js,
@@ -155,7 +185,18 @@ const compile = async (path, schema) => {
 };
 
 // const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
-const result = await compile("./components/my-greeting.webc");
+// const result = await compile("./components/my-greeting.webc");
 
-await toReactComponentFile({...toReactComponent(result), outputDir: "output", });
+// await toReactComponentFile({...toReactComponent(result), outputDir: "output", });
+
+const reactify = async (filename, outputDir) => {
+  const result = await compile(filename);
+  await toReactComponentFile({...toReactComponent(result), outputDir, });
+};
+
+export {
+  reactify,
+  compile,
+  toReactComponent,
+};
 
