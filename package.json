@@ -1,6 +1,6 @@
 {
-  "name": "webc-to-react-compiler",
-  "version": "1.0.0",
+  "name": "webcc",
+  "version": "0.0.1",
   "description": "",
   "main": "main.js",
   "type": "module",
@@ -8,7 +8,7 @@
     "compile": "node main.js",
     "test:components": "cd tests/webc-component-tests && pnpm run start",
     "test:react": "cd tests/compiled-react-tests && pnpm run dev",
-    "compiler": "node cli.js"
+    "webcc": "node cli.js"
   },
   "keywords": [],
   "author": "",

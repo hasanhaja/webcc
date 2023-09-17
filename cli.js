@@ -6,7 +6,7 @@ import { reactify, compile, toReactComponent } from "./main.js";
 const program = new Command();
 
 program
-  .name("wcc")
+  .name("webcc")
   .description("CLI to compile WebC components to framework components")
   .version('0.0.1');
 
