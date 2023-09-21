@@ -3,16 +3,19 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 /**
  *  Cleans up the markup to be more React JSX friendly.
- *  @param {{ snippet: string; isCustomElement: boolean; tag: string;}} Markup with metadata
+ *  @param {{ snippet: string; isCustomElement: boolean; tag: string; framework: "react" | "astro"}} Markup with metadata
  *  @returns {string} Reformatted markup.
  */
-const sanitizeMarkup = ({ snippet, isCustomElement, tag }) => {
+const sanitizeMarkup = ({ snippet, isCustomElement, tag, framework }) => {
   let result = snippet;
-  result = result.replaceAll("class=", "className=");
 
-  if (isCustomElement) {
-    // TOOD Come up with a better way to handle this so web component props are not missed
-    result = result.replaceAll(`<${tag}>`, `<${tag} ref={wc}>`) 
+  if (framework === "react") {
+    result = result.replaceAll("class=", "className=");
+
+    if (isCustomElement) {
+      // TOOD Come up with a better way to handle this so web component props are not missed
+      result = result.replaceAll(`<${tag}>`, `<${tag} ref={wc}>`) 
+    }
   }
 
   return result;
@@ -38,6 +41,52 @@ const formatProps = (props) => {
 };
 
 /**
+ *  Converts parts of the component including markup, styles and web component JS into a Astro component.
+ *  @param {{ snippet: string; styles: string; name: string; props: string; js: string; tag: string;}} parts - Parts of a component.
+ *  @returns {{ component: string; styles: string; name: string; js: string;}} partsToWrite - Parts to be written to disk.
+ */
+const toAstroComponent = ({ snippet, styles, name, props, js, tag }) => {
+  const { types, params } = formatProps(props) ?? {};
+  const boilerplate = `
+    ---
+    ${ types ? `type Props = ${types};\nconst ${params} = Astro.props;` : "" }
+    ---
+    ${sanitizeMarkup({ snippet, isCustomElement: js !== undefined, tag, framework: "astro"})}
+    ${ styles ? `
+    <style>
+    ${styles}
+    </style>
+    ` : ""
+    }
+    ${ js ? `
+    <script>
+    ${js}
+    </script>
+    ` : ""
+    }
+  `;
+
+  return {
+    component: boilerplate,
+    name,
+  };
+};
+
+/**
+ *  Writes parts of the component to disk.
+ *  @param {{ component: string; name: string; styles: string; js: string; outputDir: string;}} parts - Parts required to write component to disk.
+ */
+const toAstroComponentFile = async ({ component, name, outputDir}) => {
+  const componentFileName = "index.astro";
+  const componentDir = `./${outputDir}/astro/components/${name}`;
+  
+  const componentDirUrl = new URL(componentDir, import.meta.url);
+  await mkdir(componentDirUrl, { recursive: true });
+
+  await writeFile(`${componentDir}/${componentFileName}`, component);
+};
+
+/**
  *  Converts parts of the component including markup, styles and web component JS into a React component.
  *  @param {{ snippet: string; styles: string; name: string; props: string; js: string; tag: string;}} parts - Parts of a component.
  *  @returns {{ component: string; styles: string; name: string; js: string;}} partsToWrite - Parts to be written to disk.
@@ -54,7 +103,7 @@ const toReactComponent = ({ snippet, styles, name, props, js, tag }) => {
       ${ js ? "const wc = useRef(null);" : "" }
       return (
         <>
-          ${sanitizeMarkup({ snippet, isCustomElement: js !== undefined, tag})}
+          ${sanitizeMarkup({ snippet, isCustomElement: js !== undefined, tag, framework: "react"})}
         </>
       );
     }
@@ -78,7 +127,7 @@ const toReactComponentFile = async ({ component, name, styles, js, outputDir}) =
   const componentFileName = "index.tsx";
   const stylesFileName = "index.css";
   const jsFileName = "web-component.js";
-  const componentDir = `./${outputDir}/components/${name}`;
+  const componentDir = `./${outputDir}/react/components/${name}`;
   
   const componentDirUrl = new URL(componentDir, import.meta.url);
   await mkdir(componentDirUrl, { recursive: true });
@@ -189,14 +238,24 @@ const compile = async (path, schema) => {
 
 // await toReactComponentFile({...toReactComponent(result), outputDir: "output", });
 
+// const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
+// console.log(toAstroComponent(result).component);
+
 const reactify = async (filename, outputDir) => {
   const result = await compile(filename);
   await toReactComponentFile({...toReactComponent(result), outputDir, });
 };
 
+const astrofy = async (filename, outputDir) => {
+  const result = await compile(filename);
+  await toAstroComponentFile({...toAstroComponent(result), outputDir, });
+};
+
 export {
   reactify,
+  astrofy,
   compile,
   toReactComponent,
+  toAstroComponent,
 };
 

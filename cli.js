@@ -1,7 +1,7 @@
 #! /usr/bin/env node 
 
 import { Command } from "commander";
-import { reactify, compile, toReactComponent } from "./main.js";
+import { reactify, compile, toReactComponent, toAstroComponent, astrofy } from "./main.js";
 
 const program = new Command();
 
@@ -49,8 +49,37 @@ program
       console.log("🚀 Compiling WebC to React..."); 
       await reactify(source, output);
       console.log("✅ WebC to React compilation successful!"); 
+    } else if (str.toLowerCase() === "astro") {
+      if (isDebug) {
+        console.log(`💡 Debugging [${source}]`);
+
+        const result = await compile(source);
+        const { snippet, js, styles } = result;
+        console.log("----HTML----");
+        console.log(snippet);
+
+        console.log("-----JS-----");
+        console.log(js !== "" ? js : "No JavaScript");
+        
+        console.log("----CSS-----");
+        console.log(styles !== "" ? styles : "No CSS");
+
+        const { component } = toAstroComponent(result);
+        
+        console.log("---ASTRO----");
+        console.log(component);
+        console.log("------------");
+
+        return;
+      }
+
+      // TODO Throw error if output is not defined
+
+      console.log("🚀 Compiling WebC to Astro..."); 
+      await astrofy(source, output);
+      console.log("✅ WebC to Astro compilation successful!"); 
     } else {
-      console.error("🙁 Sorry, wcc currently only supports the following targets:\n- React");
+      console.error("🙁 Sorry, wcc currently only supports the following targets:\n- React\n- Astro");
     }
   });
 
