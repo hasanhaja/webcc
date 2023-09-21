@@ -13,6 +13,6 @@ The workflow for component development would be to author it using WebC, test it
 - [x] Debugging option for the CLI interface
 - [ ] Auto detection of WebC props and attributes
 - [ ] Fully supported custom elements wrapper in React
-- [ ] Astro components
+- [x] Astro components
 - [ ] Vue components
 - [ ] Proper support for client components for React Server Components
