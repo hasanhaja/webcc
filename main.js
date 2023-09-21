@@ -77,8 +77,8 @@ const toAstroComponent = ({ snippet, styles, name, props, js, tag }) => {
  *  @param {{ component: string; name: string; styles: string; js: string; outputDir: string;}} parts - Parts required to write component to disk.
  */
 const toAstroComponentFile = async ({ component, name, outputDir}) => {
-  const componentFileName = "index.astro";
-  const componentDir = `./${outputDir}/astro/components/${name}`;
+  const componentFileName = `${name}.astro`;
+  const componentDir = `./${outputDir}/astro/components`;
   
   const componentDirUrl = new URL(componentDir, import.meta.url);
   await mkdir(componentDirUrl, { recursive: true });
