@@ -241,13 +241,13 @@ const compile = async (path, schema) => {
 // const result = await compile("./components/component-with-props.webc", "./components/component-with-props.json");
 // console.log(toAstroComponent(result).component);
 
-const reactify = async (filename, outputDir) => {
-  const result = await compile(filename);
+const reactify = async (filename, outputDir, props) => {
+  const result = await compile(filename, props);
   await toReactComponentFile({...toReactComponent(result), outputDir, });
 };
 
-const astrofy = async (filename, outputDir) => {
-  const result = await compile(filename);
+const astrofy = async (filename, outputDir, props) => {
+  const result = await compile(filename, props);
   await toAstroComponentFile({...toAstroComponent(result), outputDir, });
 };
 
